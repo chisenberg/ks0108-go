@@ -8,15 +8,14 @@ import "C"
 import (
 	"fmt"
 	"time"
+	"math"
 )
 
 const (
-	DISPLAY_SET_Y = 0x40;
-	DISPLAY_SET_X = 0xB8;
-	DISPLAY_START_LINE = 0xC0;
-	DISPLAY_ON_CMD = 0x3E;
-	ON = 0x01;
-	OFF = 0x00;
+	displaySetY = 0x40;
+	displaySetX = 0xB8;
+	displayStartLine = 0xC0;
+	displayOnCmd = 0x3E;
 )
 	
 // The Pins struct
@@ -69,10 +68,18 @@ func InitKs0108(pins Pins, width uint8, height uint8) *Ks0108  {
 	C.gpioSetMode(C.uint(pins.D7), C.PI_OUTPUT);
 
 	for i := uint8(0); i < 3; i++ {
-		lcd.writeCommand((DISPLAY_ON_CMD | ON), i);
+		lcd.writeCommand((displayOnCmd | 0x01), i);
 	}
 
 	lcd.clearScreen();
+	lcd.setPixel(5,5);
+	// lcd.setPixel(6,6);
+	// lcd.setPixel(7,7);
+	for i :=800; i< 1024; i++ {
+		lcd.framebuffer[i] = 0xAA;
+	}
+	// lcd.writeChar(0,0,C.uint8_t('C',C.metric02));
+	lcd.syncBuffer();
 
 	return lcd;
 }
@@ -82,12 +89,12 @@ func (lcd *Ks0108) goTo(x uint8, y uint8) {
 	lcd.screenX = x;
 	lcd.screenY = y;
 	for i=0; i<lcd.screenWidth/64; i++ {
-		lcd.writeCommand(DISPLAY_SET_Y | 0,i);
-		lcd.writeCommand(DISPLAY_SET_X | y,i);
-		lcd.writeCommand(DISPLAY_START_LINE | 0,i);
+		lcd.writeCommand(displaySetY | 0,i);
+		lcd.writeCommand(displaySetX | y,i);
+		lcd.writeCommand(displayStartLine | 0,i);
 	}
-	lcd.writeCommand(DISPLAY_SET_Y | (x % 64), (x / 64));
-	lcd.writeCommand(DISPLAY_SET_X | y, (x / 64));
+	lcd.writeCommand(displaySetY | (x % 64), (x / 64));
+	lcd.writeCommand(displaySetX | y, (x / 64));
 }
 
 func (lcd *Ks0108) putData(data uint8) {
@@ -149,7 +156,6 @@ func (lcd *Ks0108) clearBuffer() {
 
 func (lcd *Ks0108) syncBuffer() {
 	counter := 0;
-	fmt.Println(len(lcd.framebuffer));
 	for row := uint8(0); row < 8; row++ {
 		lcd.goTo(0,row);
 		for col := uint8(0); col < lcd.screenWidth; col++ {
@@ -159,36 +165,25 @@ func (lcd *Ks0108) syncBuffer() {
 	}
 }
 
-// //-------------------------------------------------------------------------------------------------
-// //
-// //-------------------------------------------------------------------------------------------------
-// void Ks0108pi::setPixel(uint8_t x, uint8_t y)
-// {
-// 	int idx = (SCREEN_WIDTH * (y/8)) + x;
-// 	framebuffer[idx] |= 1 << y%8;
-// }
+func (lcd *Ks0108) setPixel(x uint8, y uint8) {
+	idx := (lcd.screenWidth * (y/8)) + x;
+	lcd.framebuffer[idx] |= 1 << y%8;
+}
 
-// //-------------------------------------------------------------------------------------------------
-// //
-// //-------------------------------------------------------------------------------------------------
-// void Ks0108pi::clearPixel(uint8_t x, uint8_t y)
-// {
-// 	int idx = (SCREEN_WIDTH * (y/8)) + x;
-// 	framebuffer[idx] &= ~(1 << y%8);
-// }
+func (lcd *Ks0108) clearPixel(x uint8, y uint8) {
+	idx := (lcd.screenWidth * (y/8)) + x;
+	lcd.framebuffer[idx] &^= (1 << y%8);
+}
 
-// //-------------------------------------------------------------------------------------------------
-// //
-// //-------------------------------------------------------------------------------------------------
-// void Ks0108pi::setPixels(uint8_t x, uint8_t y, uint8_t byte)
-// {
-// 	int idx = (SCREEN_WIDTH * (y/8)) + x;
-// 	int idx2 = (SCREEN_WIDTH * ( (y/8)+1) ) + x;
-// 	uint8_t rest = y%8;
-// 	framebuffer[idx] |= ( byte << y%8 );
-// 	if(rest)
-// 		framebuffer[idx2] |= byte >> (8-y%8);
-// }
+func (lcd *Ks0108) setPixels(x uint8, y uint8, data uint8) {
+	idx := (lcd.screenWidth * (y/8)) + x;
+	idx2 := (lcd.screenWidth * ( (y/8)+1) ) + x;
+	rest := y%8;
+	lcd.framebuffer[idx] |= ( data << y%8 );
+	if(rest > 0) {
+		lcd.framebuffer[idx2] |= data >> (8-y%8);
+	}
+}
 
 // //-------------------------------------------------------------------------------------------------
 // //
@@ -234,45 +229,41 @@ func (lcd *Ks0108) syncBuffer() {
 
 // }
 
-// //-------------------------------------------------------------------------------------------------
-// //
-// //-------------------------------------------------------------------------------------------------
-// void Ks0108pi::writeChar(uint8_t x, uint8_t y, char charToWrite, uint8_t* font)
-// {
-// 	int firstChar = font[4];
-// 	int charCount = font[5];
-// 	int charHeight = font[3];
-// 	int charWidth = font[2];
-// 	int sum= 6;
-// 	int fixed_width = 1;
+func (lcd *Ks0108) writeChar(x uint8, y uint8, charToWrite byte, font []uint8) {
+	firstChar := font[4];
+	charCount := int(font[5]);
+	charHeight := font[3];
+	charWidth := font[2];
+	sum := int(6);
+	fixedWidth := true;
 
-// 	if( (font[0] + font [1]) != 0x00){
-// 		fixed_width  = 0;
-// 	}
+	if( (font[0] + font [1]) != 0x00){
+		fixedWidth  = false;
+	}
 
 
-// 	if( !fixed_width ){
-// 		charWidth = font[6+(charToWrite-firstChar)];
-// 		sum += charCount;
-// 	}
+	if( !fixedWidth ){
+		charWidth = font[6+(charToWrite-firstChar)];
+		sum += charCount;
+	}
 
-// 	//jumps to the char data position on the array.
-// 	for(int i=firstChar; i<charToWrite; i++){
-// 		if( !fixed_width )
-// 			sum += font[6+i-firstChar] * ceil(charHeight/8.0);
-// 		else
-// 			sum += charWidth * ceil(charHeight/8.0);
-// 	}
+	//jumps to the char data position on the array.
+	for i:=firstChar; i<charToWrite; i++ {
+		if( !fixedWidth ) {
+			sum += int(float64(font[6+i-firstChar]) * math.Ceil(float64(charHeight)/8.0));
+		} else {
+			sum += int(float64(charWidth) * math.Ceil(float64(charHeight)/8.0));
+		}
+	}
 
-// 	for(int line=0; line < charHeight; line+=8){
-// 		for(int col=0; col<charWidth; col++){
-// 			setPixels(x+col, ceil(y+line),
-// 				font[sum + col + (int)ceil(charWidth*line/8.0)]
-// 			);
-// 		}
-// 	}
+	for line:=uint8(0); line < uint8(charHeight); line+=8 {
+		for col:=uint8(0); col< uint8(charWidth); col++ {
+			setByte := font[sum + int(col) + int(math.Ceil(float64(charWidth)*float64(line/8.0)))];
+			lcd.setPixels(x+col, y+line, uint8(setByte));
+		}
+	}
 
-// }
+}
 
 
 
