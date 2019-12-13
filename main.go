@@ -3,6 +3,7 @@ package main
 import (
 	// "fmt"
 	"ks0108-go/libs/ks0108"
+	"time"
 )
 
 func main() {
@@ -23,6 +24,22 @@ func main() {
 		D7: 9,
 	}
 
-	ks0108.InitKs0108(conf, 128, 64);
+	lcd := ks0108.NewKs0108(conf, 128, 64);
+
+	lcd.LoadFont("metric01", "fonts/metric01.h");
+	lcd.LoadFont("metric02", "fonts/metric02.h");
+	lcd.LoadFont("metric04", "fonts/metric04.h");
+
+	counter := 0;
+
+	for {
+		counter++;
+		lcd.ClearBuffer();
+		lcd.WriteString(64,6,"TESTANDO", "metric01");
+		lcd.WriteString(0,0,"ABACATE", "metric02");
+		lcd.WriteString(0,20, fmt.Sprintf("%d", counter), "metric04");
+		lcd.SyncBuffer();
+		time.Sleep(500 * time.Millisecond);
+	}
 
 }
