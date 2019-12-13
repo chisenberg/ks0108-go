@@ -1,6 +1,7 @@
 package ks0108
 
 import (
+	"fmt"
 	"bufio"
 	"os"
 	"log"
@@ -36,6 +37,7 @@ func loadFont(fileName string) []byte {
 		// decode
 		decoded, err := hex.DecodeString(token)
 		if err != nil {
+			fmt.Println(token)
 			log.Fatal(err)
 		}
 		font = append(font, decoded[0]);

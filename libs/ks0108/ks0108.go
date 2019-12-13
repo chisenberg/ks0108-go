@@ -71,15 +71,22 @@ func InitKs0108(pins Pins, width uint8, height uint8) *Ks0108  {
 		lcd.writeCommand((displayOnCmd | 0x01), i);
 	}
 
-	lcd.clearScreen();
-	lcd.setPixel(5,5);
-	// lcd.setPixel(6,6);
-	// lcd.setPixel(7,7);
-	for i :=800; i< 1024; i++ {
-		lcd.framebuffer[i] = 0xAA;
+	metric01 := loadFont("fonts/metric01.h");
+	metric02 := loadFont("fonts/metric02.h");
+	metric04 := loadFont("fonts/metric04.h");
+
+	counter := 0;
+
+	for {
+		counter++;
+		lcd.clearBuffer();
+		lcd.writeString(64,6,"TESTANDO", metric01);
+		lcd.writeString(0,0,"ABACATE", metric02);
+		lcd.writeString(0,20, fmt.Sprintf("%d", counter), metric04);
+		lcd.syncBuffer();
+		time.Sleep(500 * time.Millisecond);
 	}
-	// lcd.writeChar(0,0,C.uint8_t('C',C.metric02));
-	lcd.syncBuffer();
+	
 
 	return lcd;
 }
@@ -109,30 +116,22 @@ func (lcd *Ks0108) putData(data uint8) {
 }
 
 func (lcd *Ks0108) writeData(dataToWrite uint8) {
-	lcd.lcdDelay();
 	C.gpioWrite(C.uint(lcd.pins.Rs), 1);
 	lcd.putData(dataToWrite);
 	lcd.setController(lcd.screenX / 64, 1);
 	C.gpioWrite(C.uint(lcd.pins.En), 1);
-	lcd.lcdDelay();
 	C.gpioWrite(C.uint(lcd.pins.En), 0);
 	lcd.setController(lcd.screenX / 64, 0);
 	lcd.screenX++;
 }
 
 func (lcd *Ks0108) writeCommand(commandToWrite uint8, controller uint8) {
-	lcd.lcdDelay();
 	C.gpioWrite(C.uint(lcd.pins.Rs), 0);
 	lcd.setController(controller, 1);
 	lcd.putData(commandToWrite);
 	C.gpioWrite(C.uint(lcd.pins.En), 1);
-	lcd.lcdDelay();
 	C.gpioWrite(C.uint(lcd.pins.En), 0);
 	lcd.setController(controller, 0);
-}
-
-func (lcd *Ks0108) lcdDelay() {
-	time.Sleep(5 * time.Microsecond)
 }
 
 func (lcd *Ks0108) setController(controller uint8, enable uint8) {
@@ -166,22 +165,22 @@ func (lcd *Ks0108) syncBuffer() {
 }
 
 func (lcd *Ks0108) setPixel(x uint8, y uint8) {
-	idx := (lcd.screenWidth * (y/8)) + x;
-	lcd.framebuffer[idx] |= 1 << y%8;
+	idx := int(float64(lcd.screenWidth) * math.Floor(float64(y)/8)) + int(x);
+	lcd.framebuffer[idx] |= 1 << int(math.Mod(float64(y), 8));
 }
 
 func (lcd *Ks0108) clearPixel(x uint8, y uint8) {
-	idx := (lcd.screenWidth * (y/8)) + x;
+	idx := int(float64(lcd.screenWidth) * math.Floor(float64(y)/8)) + int(x);
 	lcd.framebuffer[idx] &^= (1 << y%8);
 }
 
 func (lcd *Ks0108) setPixels(x uint8, y uint8, data uint8) {
-	idx := (lcd.screenWidth * (y/8)) + x;
-	idx2 := (lcd.screenWidth * ( (y/8)+1) ) + x;
-	rest := y%8;
-	lcd.framebuffer[idx] |= ( data << y%8 );
+	idx := int(float64(lcd.screenWidth) * math.Floor(float64(y)/8)) + int(x);
+	idx2 := int(float64(lcd.screenWidth) * (math.Floor(float64(y)/8) + 1)) + int(x);
+	rest := math.Mod(float64(y), 8);
+	lcd.framebuffer[idx] |=  data << int(math.Mod(float64(y), 8));
 	if(rest > 0) {
-		lcd.framebuffer[idx2] |= data >> (8-y%8);
+		lcd.framebuffer[idx2] |= data >> (int(8)-int(math.Mod(float64(y), 8)));
 	}
 }
 
@@ -229,7 +228,7 @@ func (lcd *Ks0108) setPixels(x uint8, y uint8, data uint8) {
 
 // }
 
-func (lcd *Ks0108) writeChar(x uint8, y uint8, charToWrite byte, font []uint8) {
+func (lcd *Ks0108) writeChar(x uint8, y uint8, charToWrite byte, font []byte) {
 	firstChar := font[4];
 	charCount := int(font[5]);
 	charHeight := font[3];
@@ -240,7 +239,6 @@ func (lcd *Ks0108) writeChar(x uint8, y uint8, charToWrite byte, font []uint8) {
 	if( (font[0] + font [1]) != 0x00){
 		fixedWidth  = false;
 	}
-
 
 	if( !fixedWidth ){
 		charWidth = font[6+(charToWrite-firstChar)];
@@ -265,15 +263,9 @@ func (lcd *Ks0108) writeChar(x uint8, y uint8, charToWrite byte, font []uint8) {
 
 }
 
-
-
-// //-------------------------------------------------------------------------------------------------
-// //
-// //-------------------------------------------------------------------------------------------------
-// void Ks0108pi::writeString(uint8_t x, uint8_t y, char * stringToWrite, uint8_t* font)
-// {
-// 	while(*stringToWrite){
-// 		writeChar(x,y,*stringToWrite++, font);
-// 		x+=font[2]+1;
-// 	}
-// }
+func (lcd *Ks0108) writeString(x uint8, y uint8, stringToWrite string, font []byte) {
+	for idx := range stringToWrite {
+		lcd.writeChar(x, y, stringToWrite[idx], font);
+		x+=font[2]+1;
+	}
+}
