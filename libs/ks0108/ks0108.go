@@ -38,7 +38,7 @@ type Ks0108 struct {
 	icons map[string][]uint8
 }
 
-// InitKs0108 starts to listen
+// NewKs0108 initializes the screen and returns the instance
 func NewKs0108(pins Pins, width uint8, height uint8) *Ks0108  {
 	
 	if (C.gpioInitialise() < 0) {
@@ -77,12 +77,14 @@ func NewKs0108(pins Pins, width uint8, height uint8) *Ks0108  {
 	return lcd;
 }
 
+// ClearBuffer - clears the screen framebuffer
 func (lcd *Ks0108) ClearBuffer() {
 	for i := 0; i<lcd.framebufferSize; i++ {
 		lcd.framebuffer[i] = 0x00;
 	}
 }
 
+// SyncBuffer - Sends data on framebuffer to the screen
 func (lcd *Ks0108) SyncBuffer() {
 	counter := 0;
 	for row := uint8(0); row < 8; row++ {
@@ -147,20 +149,15 @@ func (lcd *Ks0108) setController(controller uint8, enable uint8) {
 
 func (lcd *Ks0108) setPixel(x uint8, y uint8) {
 	idx := int(float64(lcd.screenWidth) * math.Floor(float64(y)/8)) + int(x);
-	lcd.framebuffer[idx] |= 1 << int(math.Mod(float64(y), 8));
-}
-
-func (lcd *Ks0108) clearPixel(x uint8, y uint8) {
-	idx := int(float64(lcd.screenWidth) * math.Floor(float64(y)/8)) + int(x);
-	lcd.framebuffer[idx] &^= (1 << y%8);
+	lcd.framebuffer[idx] |= 1 << uint(y%8);
 }
 
 func (lcd *Ks0108) setPixels(x uint8, y uint8, data uint8) {
 	idx := int(float64(lcd.screenWidth) * math.Floor(float64(y)/8)) + int(x);
 	idx2 := int(float64(lcd.screenWidth) * (math.Floor(float64(y)/8) + 1)) + int(x);
-	rest := math.Mod(float64(y), 8);
-	lcd.framebuffer[idx] |=  data << int(math.Mod(float64(y), 8));
+	rest := uint8(y%8);
+	lcd.framebuffer[idx] |=  data << uint(y%8);
 	if(rest > 0) {
-		lcd.framebuffer[idx2] |= data >> (int(8)-int(math.Mod(float64(y), 8)));
+		lcd.framebuffer[idx2] |= data >> (uint(8) - uint(y%8));
 	}
 }

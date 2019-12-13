@@ -7,8 +7,10 @@ import (
 	"log"
 	"strings"
 	"encoding/hex"
+	"math"
 )
 
+// LoadFont - loads font from file into Ks0108 instance
 func (lcd *Ks0108) LoadFont(fontName string, fileName string) {
 	
 	// abort if font is loaded
@@ -50,6 +52,15 @@ func (lcd *Ks0108) LoadFont(fontName string, fileName string) {
 	}
 
 	lcd.fonts[fontName] = font;
+}
+
+// WriteString - write string into x,y position
+func (lcd *Ks0108) WriteString(x uint8, y uint8, stringToWrite string, fontName string) {
+	font := lcd.fonts[fontName];
+	for idx := range stringToWrite {
+		lcd.writeChar(x, y, stringToWrite[idx], fontName);
+		x+=font[2]+1;
+	}
 }
 
 func onComma(data []byte, atEOF bool) (advance int, token []byte, err error) {
@@ -98,12 +109,4 @@ func (lcd *Ks0108) writeChar(x uint8, y uint8, charToWrite byte, fontName string
 		}
 	}
 
-}
-
-func (lcd *Ks0108) WriteString(x uint8, y uint8, stringToWrite string, fontName string) {
-	font := lcd.fonts[fontName];
-	for idx := range stringToWrite {
-		lcd.writeChar(x, y, stringToWrite[idx], fontName);
-		x+=font[2]+1;
-	}
 }
