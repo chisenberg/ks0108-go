@@ -58,24 +58,13 @@ func (lcd *Ks0108) LoadFont(fontName string, fileName string) {
 func (lcd *Ks0108) WriteString(x uint8, y uint8, stringToWrite string, fontName string) {
 	font := lcd.fonts[fontName];
 	for idx := range stringToWrite {
-		lcd.writeChar(x, y, stringToWrite[idx], fontName);
+		lcd.WriteChar(x, y, stringToWrite[idx], fontName);
 		x+=font[2]+1;
 	}
 }
 
-func onComma(data []byte, atEOF bool) (advance int, token []byte, err error) {
-	for i := 0; i < len(data); i++ {
-		if data[i] == ',' || data[i] == '\n' {
-			return i + 1, data[:i], nil
-		}
-	}
-	if !atEOF {
-		return 0, nil, nil
-	}
-	return 0, data, bufio.ErrFinalToken
-}
-
-func (lcd *Ks0108) writeChar(x uint8, y uint8, charToWrite byte, fontName string) {
+// WriteChar - write single char or icon into x,y position
+func (lcd *Ks0108) WriteChar(x uint8, y uint8, charToWrite byte, fontName string) {
 	font := lcd.fonts[fontName];
 	firstChar := font[4];
 	charCount := int(font[5]);
@@ -109,4 +98,16 @@ func (lcd *Ks0108) writeChar(x uint8, y uint8, charToWrite byte, fontName string
 		}
 	}
 
+}
+
+func onComma(data []byte, atEOF bool) (advance int, token []byte, err error) {
+	for i := 0; i < len(data); i++ {
+		if data[i] == ',' || data[i] == '\n' {
+			return i + 1, data[:i], nil
+		}
+	}
+	if !atEOF {
+		return 0, nil, nil
+	}
+	return 0, data, bufio.ErrFinalToken
 }

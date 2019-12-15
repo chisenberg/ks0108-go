@@ -33,9 +33,7 @@ type Ks0108 struct {
 	screenWidth, screenHeight uint8
 	screenX, screenY uint8
 	framebuffer []uint8
-	framebufferSize int
 	fonts map[string][]uint8
-	icons map[string][]uint8
 }
 
 // NewKs0108 initializes the screen and returns the instance
@@ -51,10 +49,8 @@ func NewKs0108(pins Pins, width uint8, height uint8) *Ks0108  {
 	lcd.screenWidth = width;
 	lcd.screenHeight = height;
 	lcd.screenX, lcd.screenY = 0,0;
-	lcd.framebufferSize = 1024;
-	lcd.framebuffer = make([]uint8, lcd.framebufferSize);
+	lcd.framebuffer = make([]uint8, int(width) * int(height));
 	lcd.fonts = make(map[string][]uint8);
-	lcd.icons = make(map[string][]uint8);
 	
 	C.gpioSetMode(C.uint(pins.Rs), C.PI_OUTPUT);
 	C.gpioSetMode(C.uint(pins.En), C.PI_OUTPUT);
@@ -79,7 +75,7 @@ func NewKs0108(pins Pins, width uint8, height uint8) *Ks0108  {
 
 // ClearBuffer - clears the screen framebuffer
 func (lcd *Ks0108) ClearBuffer() {
-	for i := 0; i<lcd.framebufferSize; i++ {
+	for i := 0; i<len(lcd.framebuffer); i++ {
 		lcd.framebuffer[i] = 0x00;
 	}
 }
