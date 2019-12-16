@@ -1,7 +1,7 @@
 package main
 
 import (
-	// "fmt"
+	"fmt"
 	"time"
 	"github.com/chisenberg/ks0108-go/ks0108"
 )
@@ -36,9 +36,14 @@ func main() {
 	for {
 		counter++;
 		lcd.ClearBuffer();
+
+		lcd.WriteString(66,0,"MOWS", "metric02");
+		lcd.WriteString(100,0,"STATION", "metric01");
+		lcd.WriteString(108,7,"22:53", "metric01");
+
 		// rain
 		lcd.WriteChar(0,0, byte(0),"icons");
-		lcd.WriteString(14,0,"23.5", "metric02");
+		lcd.WriteString(14,0,"0.0", "metric02");
 
 		// temp
 		lcd.WriteChar(0,18, byte(1),"icons");
@@ -58,12 +63,17 @@ func main() {
 		lcd.WriteString(64,48,"MIN ----", "metric01");
 		lcd.WriteString(64,55,"MAX 56.4", "metric01");
 
-		// lcd.WriteString(85,0,"TESTANDO", "metric01");
-		// lcd.WriteString(85,8,"KS0108", "metric01");
-		// lcd.WriteString(0,20, fmt.Sprintf("%d", counter), "metric04");
-		// // lcd.WriteString(0,20, "11:38", "metric04");
-		// lcd.DrawLine(0,16,127,16);
-		// lcd.DrawRect(64,32,30,30,false);
+		lcd.DrawLine(64,0,64,13);
+		lcd.DrawLine(65,13,104,13);
+		lcd.DrawLine(105,13,105,63);
+
+		lcd.WriteChar(112,15, byte(4),"icons");
+		lcd.WriteString(108,29,fmt.Sprintf("%d",counter), "metric01");
+
+		lcd.DrawLine(105,37,127,37);
+
+		lcd.WriteChar(112,40, byte(5),"icons");
+		lcd.WriteString(108,55,"4.52V", "metric01");
 		
 		lcd.SyncBuffer();
 		time.Sleep(500 * time.Millisecond);

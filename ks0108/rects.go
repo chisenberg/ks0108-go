@@ -24,7 +24,7 @@ func (lcd *Ks0108) DrawRect(x int, y int, w int, h int, fill bool){
 }
 
 // DrawLine - Draws a 1 pixel width line from x to y
-func (lcd * Ks0108) DrawLine(x0 int, y0 int, x1 int, y1 int){
+func (lcd * Ks0108) DrawLine(x0 int, y0 int, x1 int, y1 int) {
 	var e2 int
 	dx := abs(x1-x0);
 	dy := abs(y1-y0)
